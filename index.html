@@ -11,53 +11,48 @@
 
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
-    body { background-color: #0b0a10; color: #fbf7ee; padding-bottom: 75px; }
+    body { background-color: #0b0a10; color: #fbf7ee; padding-bottom: 80px; }
 
-    /* Barra Superior */
     header { background: #121118; border-bottom: 1px solid #282433; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 20; }
     .brand { font-size: 1.3rem; font-weight: 800; color: #d8b4fe; letter-spacing: -0.5px; }
-    .bcv-tag { font-size: 0.8rem; background: #221c30; border: 1px solid #3c3350; color: #fef3c7; padding: 4px 8px; border-radius: 6px; }
+    .bcv-tag { font-size: 0.8rem; background: #221c30; border: 1px solid #3c3350; color: #fef3c7; padding: 4px 8px; border-radius: 6px; cursor: pointer; user-select: none; }
 
     .container { padding: 14px; max-width: 600px; margin: 0 auto; }
 
-    /* Tarjetas y botones */
     .card { background: #161520; border: 1px solid #282433; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
     .btn { display: block; width: 100%; padding: 12px; border-radius: 8px; font-weight: 700; font-size: 0.95rem; text-align: center; border: none; cursor: pointer; }
     .btn-primary { background: #d8b4fe; color: #121118; }
     .btn-danger { background: #ef4444; color: #fff; width: auto; padding: 6px 12px; font-size: 0.8rem; }
     .btn-sm { width: auto; padding: 6px 10px; font-size: 0.8rem; }
 
-    /* Navegación por 2 Pestañas */
     .tab-content { display: none; }
     .tab-content.active { display: block; }
     nav.bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: #121118; border-top: 1px solid #282433; display: flex; justify-content: space-around; padding: 10px 0; z-index: 30; }
     .nav-btn { background: none; border: none; color: #9c94aa; font-size: 0.85rem; font-weight: 700; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; flex: 1; }
     .nav-btn.active { color: #d8b4fe; }
 
-    /* Modal Calculadora */
     .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 100; overflow-y: auto; padding: 14px; align-items: center; justify-content: center; }
     .modal-backdrop.open { display: flex; }
     .modal-box { background: #161520; border: 1px solid #282433; border-radius: 12px; width: 100%; max-width: 480px; padding: 16px; }
     .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid #282433; padding-bottom: 8px; }
     .close-btn { background: none; border: none; font-size: 1.6rem; color: #9c94aa; cursor: pointer; }
 
-    /* Campos de formulario */
     .form-group { margin-bottom: 10px; }
     .form-group label { display: block; font-size: 0.8rem; color: #9c94aa; margin-bottom: 4px; }
     input { width: 100%; background: #0b0a10; border: 1px solid #282433; border-radius: 6px; padding: 8px 10px; color: #fbf7ee; font-size: 0.95rem; }
     input:focus { outline: none; border-color: #d8b4fe; }
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
-    /* Toggle Interbancario */
     .toggle-group { display: flex; gap: 6px; background: #0b0a10; padding: 4px; border-radius: 8px; border: 1px solid #282433; }
     .toggle-btn { flex: 1; padding: 8px; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; background: transparent; color: #9c94aa; font-size: 0.85rem; }
     .toggle-btn.selected { background: #38bdf8; color: #0b0a10; }
 
-    /* Filas de cálculo */
     .calc-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 0.85rem; border-bottom: 1px dashed #282433; }
     .calc-row.total { font-weight: 800; font-size: 1.1rem; border: none; padding-top: 8px; color: #fef3c7; }
 
-    /* Módulo Bancos y Cuentas */
+    /* Totales y Tarjetas */
+    .summary-profit-card { background: linear-gradient(135deg, #1b1827, #13121d); border: 1px solid #3c3350; border-left: 4px solid #38bdf8; border-radius: 12px; padding: 14px; margin-top: 14px; }
+
     .bank-box { background: #161520; border: 1px solid #282433; border-radius: 10px; margin-bottom: 12px; overflow: hidden; }
     .bank-head { background: #1c1a27; padding: 12px; display: flex; justify-content: space-between; align-items: center; font-weight: 700; cursor: pointer; }
     .bank-content { padding: 12px; display: none; }
@@ -72,7 +67,9 @@
 
   <header>
     <div class="brand">ARBITRAX</div>
-    <div class="bcv-tag">BCV: <strong id="header-rate">881.0664</strong> Bs</div>
+    <div class="bcv-tag" onclick="actualizarTasaBCV()" title="Toca para actualizar">
+      BCV: <strong id="header-rate">Cargando...</strong> Bs 🔄
+    </div>
   </header>
 
   <div class="container">
@@ -81,18 +78,35 @@
     <div id="tab-arbitrax" class="tab-content active">
       <div class="card" style="text-align: center;">
         <h2 style="margin-bottom: 6px; font-size: 1.2rem; color: #fef3c7;">Operaciones Diarias</h2>
-        <p style="color: #9c94aa; font-size: 0.85rem; margin-bottom: 16px;">Calcula con el 0.50% de comisión bancaria y registra ganancias.</p>
-        <button class="btn btn-primary" onclick="openModal()">+ Nueva Operación</button>
+        <p style="color: #9c94aa; font-size: 0.85rem; margin-bottom: 16px;">Calcula con el 0.50% bancario, edita o agrega tus operaciones.</p>
+        <button class="btn btn-primary" onclick="openNewModal()">+ Nueva Operación</button>
       </div>
 
-      <h3 style="font-size: 0.95rem; margin-bottom: 8px; color: #d8b4fe;">Estimaciones Guardadas Hoy</h3>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin: 16px 0 8px 0;">
+        <h3 style="font-size: 0.95rem; color: #d8b4fe;">Operaciones Realizadas Hoy</h3>
+        <span style="font-size: 0.75rem; color: #9c94aa;">Toca ✏️ para editar</span>
+      </div>
+      
+      <!-- Lista de operaciones -->
       <div id="list-operations"></div>
+
+      <!-- Resumen acumulado de ganancia total -->
+      <div class="summary-profit-card" id="summary-profit-box" style="display: none;">
+        <div style="font-size: 0.8rem; color: #9c94aa; text-transform: uppercase; font-weight: 700;">Ganancia Neta Total Acumulada</div>
+        <div style="display: flex; justify-content: space-between; align-items: baseline; margin: 4px 0;">
+          <div id="total-profit-sum" style="font-size: 1.85rem; font-weight: 800; color: #fef3c7;">+$0.00</div>
+          <div id="total-ops-count" style="font-size: 0.8rem; color: #38bdf8; font-weight: 700;">0 operaciones</div>
+        </div>
+        <div style="font-size: 0.75rem; color: #9c94aa; display: flex; justify-content: space-between; border-top: 1px dashed #282433; padding-top: 6px; margin-top: 4px;">
+          <span>Total USD Comprados: <strong id="total-usd-sum" style="color: #fbf7ee;">$0</strong></span>
+          <span>USDT Vendidos: <strong id="total-usdt-sum" style="color: #38bdf8;">0 USDT</strong></span>
+        </div>
+      </div>
     </div>
 
     <!-- PESTAÑA 2: BANCOS Y CONTROL DE PAGOS -->
     <div id="tab-bancos" class="tab-content">
       
-      <!-- Panel de Deudas y Pagos Unificado -->
       <div class="card" style="border-left: 4px solid #d8b4fe;">
         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
           <div>
@@ -115,11 +129,11 @@
 
   </div>
 
-  <!-- MODAL CALCULADORA -->
+  <!-- MODAL CALCULADORA (NUEVA / EDITAR) -->
   <div id="modal-calc" class="modal-backdrop">
     <div class="modal-box">
       <div class="modal-header">
-        <h3 style="font-size: 1.1rem; color: #fef3c7;">Calculadora de Operación</h3>
+        <h3 id="modal-title" style="font-size: 1.1rem; color: #fef3c7;">Calculadora de Operación</h3>
         <button class="close-btn" onclick="closeModal()">&times;</button>
       </div>
 
@@ -201,7 +215,7 @@
         </div>
       </div>
 
-      <button class="btn btn-primary" onclick="saveOperation()">Guardar Estimado del Día</button>
+      <button class="btn btn-primary" id="btn-modal-save" onclick="saveOperation()">Guardar Operación</button>
     </div>
   </div>
 
@@ -222,6 +236,7 @@
     var operations = [];
     var daysList = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie'];
     var openAccordions = { 0: true };
+    var editingIndex = -1; // -1 significa crear nueva, >=0 significa editando
 
     var banks = [
       {
@@ -264,23 +279,40 @@
     ];
 
     try {
-      var savedB = localStorage.getItem('arb_banks_data_v3');
+      var savedB = localStorage.getItem('arb_banks_data_v4');
       if (savedB) banks = JSON.parse(savedB);
-      var savedO = localStorage.getItem('arb_ops_data_v3');
+      var savedO = localStorage.getItem('arb_ops_data_v4');
       if (savedO) operations = JSON.parse(savedO);
     } catch(e) {}
 
     function persist() {
       try {
-        localStorage.setItem('arb_banks_data_v3', JSON.stringify(banks));
-        localStorage.setItem('arb_ops_data_v3', JSON.stringify(operations));
+        localStorage.setItem('arb_banks_data_v4', JSON.stringify(banks));
+        localStorage.setItem('arb_ops_data_v4', JSON.stringify(operations));
       } catch(e) {}
+    }
+
+    async function actualizarTasaBCV() {
+      var tag = document.getElementById('header-rate');
+      tag.textContent = '...';
+      try {
+        var res = await fetch('https://ve.dolarapi.com/v1/dolares/oficial', { cache: 'no-store' });
+        var data = await res.json();
+        if (data && data.promedio) {
+          var nuevaTasa = parseFloat(data.promedio);
+          document.getElementById('inp-bcv').value = nuevaTasa;
+          tag.textContent = nuevaTasa.toFixed(4);
+          runMath();
+        }
+      } catch(e) {
+        var tasaActual = parseFloat(document.getElementById('inp-bcv').value) || 881.0664;
+        tag.textContent = tasaActual.toFixed(4);
+      }
     }
 
     function switchTab(tab) {
       document.getElementById('tab-arbitrax').className = 'tab-content';
       document.getElementById('tab-bancos').className = 'tab-content';
-
       document.getElementById('btn-tab-arbitrax').className = 'nav-btn';
       document.getElementById('btn-tab-bancos').className = 'nav-btn';
 
@@ -288,12 +320,41 @@
       document.getElementById('btn-tab-' + tab).className = 'nav-btn active';
     }
 
-    function openModal() {
+    function openNewModal() {
+      editingIndex = -1;
+      document.getElementById('modal-title').textContent = 'Nueva Operación';
+      document.getElementById('btn-modal-save').textContent = 'Guardar Operación';
+      document.getElementById('inp-op-name').value = 'Banesco';
+      document.getElementById('inp-usd').value = 500;
+      document.getElementById('inp-binance').value = 1007;
       document.getElementById('modal-calc').className = 'modal-backdrop open';
       runMath();
     }
+
+    function openEditModal(index) {
+      editingIndex = index;
+      var op = operations[index];
+      document.getElementById('modal-title').textContent = 'Editar: ' + op.name;
+      document.getElementById('btn-modal-save').textContent = 'Actualizar Cambios';
+
+      document.getElementById('inp-op-name').value = op.name || 'Operación';
+      document.getElementById('inp-usd').value = op.usd;
+      document.getElementById('inp-binance').value = op.binanceRate || 1007;
+      document.getElementById('inp-bcv').value = op.bcvRate || 881.0664;
+      document.getElementById('inp-card').value = op.feeCard !== undefined ? op.feeCard : 2.45;
+      document.getElementById('inp-gate').value = op.feeGate !== undefined ? op.feeGate : 4.10;
+      document.getElementById('inp-owner').value = op.feeOwner !== undefined ? op.feeOwner : 5;
+      document.getElementById('inp-soft').value = op.feeSoft !== undefined ? op.feeSoft : 4;
+      
+      setInterbank(op.useInterbank !== undefined ? op.useInterbank : true);
+
+      document.getElementById('modal-calc').className = 'modal-backdrop open';
+      runMath();
+    }
+
     function closeModal() {
       document.getElementById('modal-calc').className = 'modal-backdrop';
+      editingIndex = -1;
     }
 
     function setInterbank(state) {
@@ -324,7 +385,10 @@
       var netUSD = usd - (cardUSD + gateUSD + feeOwner + feeSoft);
       var profit = netUSD - usdtNeeded;
 
-      document.getElementById('header-rate').textContent = bcv.toFixed(4);
+      var tag = document.getElementById('header-rate');
+      if (tag.textContent !== '...') {
+        tag.textContent = bcv.toFixed(4);
+      }
       document.getElementById('out-effective-rate').textContent = effectiveRateWithBank.toFixed(4) + ' Bs';
       document.getElementById('out-bank-fee-ves').textContent = 'Bs. ' + bankFeeVES.toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2});
       document.getElementById('out-ves').textContent = 'Bs. ' + totalVES.toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2});
@@ -335,7 +399,18 @@
       pEl.textContent = '$' + profit.toFixed(2);
       pEl.style.color = profit >= 0 ? '#fef3c7' : '#ef4444';
 
-      return { usd: usd, usdt: usdtNeeded.toFixed(2), profit: profit.toFixed(2) };
+      return { 
+        usd: usd, 
+        usdt: usdtNeeded.toFixed(2), 
+        profit: profit.toFixed(2),
+        binanceRate: binance,
+        bcvRate: bcv,
+        feeCard: feeCard,
+        feeGate: feeGate,
+        feeOwner: feeOwner,
+        feeSoft: feeSoft,
+        useInterbank: interbankActive
+      };
     }
 
     function saveOperation() {
@@ -344,7 +419,27 @@
       var now = new Date();
       var timeStr = now.getHours() + ':' + (now.getMinutes() < 10 ? '0' : '') + now.getMinutes();
 
-      operations.unshift({ name: name, usd: r.usd, usdt: r.usdt, profit: r.profit, time: timeStr });
+      var opData = {
+        name: name,
+        usd: r.usd,
+        usdt: r.usdt,
+        profit: r.profit,
+        time: (editingIndex >= 0 && operations[editingIndex]) ? operations[editingIndex].time : timeStr,
+        binanceRate: r.binanceRate,
+        bcvRate: r.bcvRate,
+        feeCard: r.feeCard,
+        feeGate: r.feeGate,
+        feeOwner: r.feeOwner,
+        feeSoft: r.feeSoft,
+        useInterbank: r.useInterbank
+      };
+
+      if (editingIndex >= 0) {
+        operations[editingIndex] = opData;
+      } else {
+        operations.unshift(opData);
+      }
+
       persist();
       renderOps();
       closeModal();
@@ -352,25 +447,47 @@
 
     function renderOps() {
       var box = document.getElementById('list-operations');
+      var summaryBox = document.getElementById('summary-profit-box');
+
       if (operations.length === 0) {
         box.innerHTML = '<p style="color: #9c94aa; font-size: 0.85rem;">No hay estimaciones guardadas hoy.</p>';
+        summaryBox.style.display = 'none';
         return;
       }
+
       var html = '';
+      var totalProfit = 0;
+      var totalUSD = 0;
+      var totalUSDT = 0;
+
       for (var i = 0; i < operations.length; i++) {
         var op = operations[i];
+        var profVal = parseFloat(op.profit) || 0;
+        totalProfit += profVal;
+        totalUSD += (parseFloat(op.usd) || 0);
+        totalUSDT += (parseFloat(op.usdt) || 0);
+
         html += '<div class="card" style="padding: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border-left: 3px solid #38bdf8;">';
-        html += '<div>';
+        html += '<div style="flex: 1;">';
         html += '<div style="font-weight: 700; color: #d8b4fe; font-size: 0.95rem;">' + op.name + '</div>';
         html += '<div style="font-size: 0.8rem; color: #fef3c7;">Compra: $' + op.usd + ' &bull; Fondear: ' + op.usdt + ' USDT</div>';
         html += '<div style="font-size: 0.72rem; color: #9c94aa;">' + op.time + '</div>';
         html += '</div>';
-        html += '<div style="display: flex; align-items: center; gap: 8px;">';
+        html += '<div style="display: flex; align-items: center; gap: 10px;">';
         html += '<strong style="color: #fef3c7; font-size: 1.05rem;">+$' + op.profit + '</strong>';
-        html += '<button onclick="delOp(' + i + ')" style="background: none; border: none; color: #ef4444; font-size: 1.2rem; cursor: pointer; padding: 0 4px;">&times;</button>';
+        html += '<button onclick="openEditModal(' + i + ')" style="background: none; border: none; font-size: 1.05rem; cursor: pointer; padding: 0 2px;" title="Editar">✏️</button>';
+        html += '<button onclick="delOp(' + i + ')" style="background: none; border: none; color: #ef4444; font-size: 1.25rem; cursor: pointer; padding: 0 4px;" title="Borrar">&times;</button>';
         html += '</div></div>';
       }
+
       box.innerHTML = html;
+
+      // Actualizar tarjeta acumulada de ganancias totales
+      summaryBox.style.display = 'block';
+      document.getElementById('total-profit-sum').textContent = (totalProfit >= 0 ? '+$' : '-$') + Math.abs(totalProfit).toFixed(2);
+      document.getElementById('total-ops-count').textContent = operations.length + (operations.length === 1 ? ' operación' : ' operaciones');
+      document.getElementById('total-usd-sum').textContent = '$' + totalUSD.toLocaleString('es-VE');
+      document.getElementById('total-usdt-sum').textContent = totalUSDT.toFixed(2) + ' USDT';
     }
 
     function delOp(i) {
@@ -413,7 +530,7 @@
           accsHtml += '<div class="days-wrap">' + daysHtml + '</div>';
           accsHtml += '<div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: #9c94aa;">';
           accsHtml += '<span>Compras: ' + boughtCount + '/5</span>';
-          accsHtml += '<button class="btn btn-danger" style="padding: 2px 6px;" onclick="delAcc(' + b + ',' + a + ')">Borrar</button>';
+          accsHtml += '<button class="btn btn-danger" style="padding: 2px 6px;" onclick="delAcc(' + b + ',' + a + ')">Borrar Cuenta</button>';
           accsHtml += '</div></div>';
         }
 
@@ -429,7 +546,10 @@
         html += '<div class="form-group"><label>Pago por Compra a Titular ($):</label>';
         html += '<input type="number" value="' + bank.fee + '" onchange="changeFee(' + b + ', this.value)"></div>';
         html += accsHtml;
-        html += '<button class="btn btn-primary btn-sm" style="margin-top: 6px;" onclick="addAcc(' + b + ')">+ Agregar Cuenta</button>';
+        html += '<div style="display: flex; gap: 8px; margin-top: 8px;">';
+        html += '<button class="btn btn-primary btn-sm" style="flex: 1;" onclick="addAcc(' + b + ')">+ Agregar Cuenta</button>';
+        html += '<button class="btn btn-danger btn-sm" onclick="delBank(' + b + ')">Eliminar Banco</button>';
+        html += '</div>';
         html += '</div></div>';
       }
 
@@ -475,6 +595,14 @@
       renderBanksList();
     }
 
+    function delBank(b) {
+      if (confirm('¿Eliminar la categoría "' + banks[b].name + '" y todas sus cuentas?')) {
+        banks.splice(b, 1);
+        persist();
+        renderBanksList();
+      }
+    }
+
     function resetWeek() {
       for (var b = 0; b < banks.length; b++) {
         for (var a = 0; a < banks[b].accounts.length; a++) {
@@ -486,7 +614,7 @@
     }
 
     function addBankPrompt() {
-      var name = window.prompt ? window.prompt('Nombre del banco:') : null;
+      var name = window.prompt ? window.prompt('Nombre del nuevo banco:') : null;
       if (!name) name = 'Banco ' + (banks.length + 1);
       banks.push({
         name: name,
@@ -500,6 +628,7 @@
     renderOps();
     renderBanksList();
     runMath();
+    actualizarTasaBCV();
   </script>
 </body>
 </html>
