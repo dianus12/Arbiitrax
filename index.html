@@ -15,7 +15,10 @@
 
     header { background: #121118; border-bottom: 1px solid #282433; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 20; }
     .brand { font-size: 1.3rem; font-weight: 800; color: #d8b4fe; letter-spacing: -0.5px; }
-    .bcv-tag { font-size: 0.8rem; background: #221c30; border: 1px solid #3c3350; color: #fef3c7; padding: 4px 8px; border-radius: 6px; cursor: pointer; user-select: none; }
+    
+    .bcv-wrap { display: flex; align-items: center; gap: 6px; }
+    .bcv-tag { font-size: 0.8rem; background: #221c30; border: 1px solid #3c3350; color: #fef3c7; padding: 5px 9px; border-radius: 6px; cursor: pointer; user-select: none; }
+    .btn-sync { background: #282433; border: 1px solid #3c3350; color: #d8b4fe; border-radius: 6px; padding: 5px 8px; cursor: pointer; font-size: 0.85rem; }
 
     .container { padding: 14px; max-width: 600px; margin: 0 auto; }
 
@@ -50,7 +53,6 @@
     .calc-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 0.85rem; border-bottom: 1px dashed #282433; }
     .calc-row.total { font-weight: 800; font-size: 1.1rem; border: none; padding-top: 8px; color: #fef3c7; }
 
-    /* Totales y Tarjetas */
     .summary-profit-card { background: linear-gradient(135deg, #1b1827, #13121d); border: 1px solid #3c3350; border-left: 4px solid #38bdf8; border-radius: 12px; padding: 14px; margin-top: 14px; }
 
     .bank-box { background: #161520; border: 1px solid #282433; border-radius: 10px; margin-bottom: 12px; overflow: hidden; }
@@ -65,10 +67,14 @@
 </head>
 <body>
 
+  <!-- Barra Superior -->
   <header>
     <div class="brand">ARBITRAX</div>
-    <div class="bcv-tag" onclick="actualizarTasaBCV()" title="Toca para actualizar">
-      BCV: <strong id="header-rate">Cargando...</strong> Bs 🔄
+    <div class="bcv-wrap">
+      <div class="bcv-tag" onclick="promptManualBCV()" title="Toca para editar manualmente">
+        BCV: <strong id="header-rate">881.0664</strong> ✏️
+      </div>
+      <button class="btn-sync" onclick="actualizarTasaBCV(true)" title="Sincronizar tasa de internet">🔄</button>
     </div>
   </header>
 
@@ -87,7 +93,6 @@
         <span style="font-size: 0.75rem; color: #9c94aa;">Toca ✏️ para editar</span>
       </div>
       
-      <!-- Lista de operaciones -->
       <div id="list-operations"></div>
 
       <!-- Resumen acumulado de ganancia total -->
@@ -98,7 +103,7 @@
           <div id="total-ops-count" style="font-size: 0.8rem; color: #38bdf8; font-weight: 700;">0 operaciones</div>
         </div>
         <div style="font-size: 0.75rem; color: #9c94aa; display: flex; justify-content: space-between; border-top: 1px dashed #282433; padding-top: 6px; margin-top: 4px;">
-          <span>Total USD Comprados: <strong id="total-usd-sum" style="color: #fbf7ee;">$0</strong></span>
+          <span>Total USD: <strong id="total-usd-sum" style="color: #fbf7ee;">$0</strong></span>
           <span>USDT Vendidos: <strong id="total-usdt-sum" style="color: #38bdf8;">0 USDT</strong></span>
         </div>
       </div>
@@ -155,7 +160,7 @@
 
       <div class="form-group">
         <label>Tasa BCV Base (Bs/USD):</label>
-        <input type="number" id="inp-bcv" value="881.0664" step="0.0001" oninput="runMath()">
+        <input type="number" id="inp-bcv" value="881.0664" step="0.0001" oninput="manualBCVInput(this.value)">
       </div>
 
       <div class="form-group">
@@ -232,11 +237,12 @@
   </nav>
 
   <script>
+    var currentBCV = parseFloat(localStorage.getItem('arb_current_bcv')) || 881.0664;
     var interbankActive = true;
     var operations = [];
     var daysList = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie'];
     var openAccordions = { 0: true };
-    var editingIndex = -1; // -1 significa crear nueva, >=0 significa editando
+    var editingIndex = -1;
 
     var banks = [
       {
@@ -279,34 +285,86 @@
     ];
 
     try {
-      var savedB = localStorage.getItem('arb_banks_data_v4');
+      var savedB = localStorage.getItem('arb_banks_data_v5');
       if (savedB) banks = JSON.parse(savedB);
-      var savedO = localStorage.getItem('arb_ops_data_v4');
+      var savedO = localStorage.getItem('arb_ops_data_v5');
       if (savedO) operations = JSON.parse(savedO);
     } catch(e) {}
 
     function persist() {
       try {
-        localStorage.setItem('arb_banks_data_v4', JSON.stringify(banks));
-        localStorage.setItem('arb_ops_data_v4', JSON.stringify(operations));
+        localStorage.setItem('arb_banks_data_v5', JSON.stringify(banks));
+        localStorage.setItem('arb_ops_data_v5', JSON.stringify(operations));
+        localStorage.setItem('arb_current_bcv', currentBCV);
       } catch(e) {}
     }
 
-    async function actualizarTasaBCV() {
-      var tag = document.getElementById('header-rate');
-      tag.textContent = '...';
-      try {
-        var res = await fetch('https://ve.dolarapi.com/v1/dolares/oficial', { cache: 'no-store' });
-        var data = await res.json();
-        if (data && data.promedio) {
-          var nuevaTasa = parseFloat(data.promedio);
-          document.getElementById('inp-bcv').value = nuevaTasa;
-          tag.textContent = nuevaTasa.toFixed(4);
+    // Edición manual al tocar la tasa en la cabecera
+    function promptManualBCV() {
+      var input = prompt("Ingresa la tasa oficial del BCV:", currentBCV.toFixed(4));
+      if (input !== null) {
+        var num = parseFloat(input.replace(',', '.'));
+        if (!isNaN(num) && num > 0) {
+          currentBCV = num;
+          persist();
+          document.getElementById('header-rate').textContent = currentBCV.toFixed(4);
+          document.getElementById('inp-bcv').value = currentBCV;
           runMath();
         }
-      } catch(e) {
-        var tasaActual = parseFloat(document.getElementById('inp-bcv').value) || 881.0664;
-        tag.textContent = tasaActual.toFixed(4);
+      }
+    }
+
+    function manualBCVInput(val) {
+      var num = parseFloat(val);
+      if (!isNaN(num) && num > 0) {
+        currentBCV = num;
+        document.getElementById('header-rate').textContent = currentBCV.toFixed(4);
+        persist();
+        runMath();
+      }
+    }
+
+    // Consulta automática / botón con respaldo de dos servidores diferentes
+    async function actualizarTasaBCV(isManualClick) {
+      var tag = document.getElementById('header-rate');
+      tag.textContent = '...';
+
+      var foundRate = null;
+
+      // 1. Intentar servidor DolarAPI
+      try {
+        var res1 = await fetch('https://ve.dolarapi.com/v1/dolares/oficial', { cache: 'no-store' });
+        if (res1.ok) {
+          var data1 = await res1.json();
+          if (data1 && data1.promedio) {
+            foundRate = parseFloat(data1.promedio);
+          }
+        }
+      } catch(e) {}
+
+      // 2. Si falló, intentar servidor DolarVZLA (CDN abierto)
+      if (!foundRate) {
+        try {
+          var res2 = await fetch('https://rates.dolarvzla.com/bcv/current.json', { cache: 'no-store' });
+          if (res2.ok) {
+            var data2 = await res2.json();
+            if (data2 && data2.current && data2.current.usd) {
+              foundRate = parseFloat(data2.current.usd);
+            }
+          }
+        } catch(e) {}
+      }
+
+      if (foundRate && foundRate > 0) {
+        currentBCV = foundRate;
+        persist();
+        document.getElementById('inp-bcv').value = currentBCV;
+        tag.textContent = currentBCV.toFixed(4);
+        runMath();
+        if (isManualClick) alert('Tasa BCV actualizada con éxito: ' + currentBCV.toFixed(4) + ' Bs');
+      } else {
+        tag.textContent = currentBCV.toFixed(4);
+        if (isManualClick) alert('No se pudo conectar a los servidores del BCV. Manteniendo tasa actual: ' + currentBCV.toFixed(4) + ' Bs. Puedes editarla tocando sobre ella.');
       }
     }
 
@@ -327,6 +385,7 @@
       document.getElementById('inp-op-name').value = 'Banesco';
       document.getElementById('inp-usd').value = 500;
       document.getElementById('inp-binance').value = 1007;
+      document.getElementById('inp-bcv').value = currentBCV;
       document.getElementById('modal-calc').className = 'modal-backdrop open';
       runMath();
     }
@@ -340,7 +399,7 @@
       document.getElementById('inp-op-name').value = op.name || 'Operación';
       document.getElementById('inp-usd').value = op.usd;
       document.getElementById('inp-binance').value = op.binanceRate || 1007;
-      document.getElementById('inp-bcv').value = op.bcvRate || 881.0664;
+      document.getElementById('inp-bcv').value = op.bcvRate || currentBCV;
       document.getElementById('inp-card').value = op.feeCard !== undefined ? op.feeCard : 2.45;
       document.getElementById('inp-gate').value = op.feeGate !== undefined ? op.feeGate : 4.10;
       document.getElementById('inp-owner').value = op.feeOwner !== undefined ? op.feeOwner : 5;
@@ -367,7 +426,7 @@
     function runMath() {
       var usd = parseFloat(document.getElementById('inp-usd').value) || 0;
       var binance = parseFloat(document.getElementById('inp-binance').value) || 0;
-      var bcv = parseFloat(document.getElementById('inp-bcv').value) || 0;
+      var bcv = parseFloat(document.getElementById('inp-bcv').value) || currentBCV;
       var feeCard = parseFloat(document.getElementById('inp-card').value) || 0;
       var feeGate = parseFloat(document.getElementById('inp-gate').value) || 0;
       var feeOwner = parseFloat(document.getElementById('inp-owner').value) || 0;
@@ -385,10 +444,6 @@
       var netUSD = usd - (cardUSD + gateUSD + feeOwner + feeSoft);
       var profit = netUSD - usdtNeeded;
 
-      var tag = document.getElementById('header-rate');
-      if (tag.textContent !== '...') {
-        tag.textContent = bcv.toFixed(4);
-      }
       document.getElementById('out-effective-rate').textContent = effectiveRateWithBank.toFixed(4) + ' Bs';
       document.getElementById('out-bank-fee-ves').textContent = 'Bs. ' + bankFeeVES.toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2});
       document.getElementById('out-ves').textContent = 'Bs. ' + totalVES.toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2});
@@ -482,7 +537,6 @@
 
       box.innerHTML = html;
 
-      // Actualizar tarjeta acumulada de ganancias totales
       summaryBox.style.display = 'block';
       document.getElementById('total-profit-sum').textContent = (totalProfit >= 0 ? '+$' : '-$') + Math.abs(totalProfit).toFixed(2);
       document.getElementById('total-ops-count').textContent = operations.length + (operations.length === 1 ? ' operación' : ' operaciones');
@@ -604,13 +658,15 @@
     }
 
     function resetWeek() {
-      for (var b = 0; b < banks.length; b++) {
-        for (var a = 0; a < banks[b].accounts.length; a++) {
-          banks[b].accounts[a].days = [false, false, false, false, false];
+      if (confirm('¿Deseas reiniciar todas las compras semanales?')) {
+        for (var b = 0; b < banks.length; b++) {
+          for (var a = 0; a < banks[b].accounts.length; a++) {
+            banks[b].accounts[a].days = [false, false, false, false, false];
+          }
         }
+        persist();
+        renderBanksList();
       }
-      persist();
-      renderBanksList();
     }
 
     function addBankPrompt() {
@@ -625,10 +681,13 @@
       renderBanksList();
     }
 
+    // Inicialización
+    document.getElementById('header-rate').textContent = currentBCV.toFixed(4);
+    document.getElementById('inp-bcv').value = currentBCV;
     renderOps();
     renderBanksList();
     runMath();
-    actualizarTasaBCV();
+    actualizarTasaBCV(false);
   </script>
 </body>
 </html>
